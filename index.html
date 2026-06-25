@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Soul Garden — Grow your habits. Grow yourself.</title>
+<meta name="description" content="Soul Garden — a living, emotional wellness companion. Grow your habits. Grow yourself." />
+<meta name="theme-color" content="#7BAF8E" />
+
+<!-- ============================================================
+     GOOGLE FONTS — Playfair Display (headings) + DM Sans (body)
+============================================================ -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet" />
+
+<style>
+/* ============================================================
+   SOUL GARDEN — STYLES
+   Organised by section:
+   1. Tokens & Reset
+   2. Layout primitives (cards, buttons, inputs)
+   3. Screens & navigation
+   4. The Garden scene (layers, levels, weather, day/night)
+   5. Companion
+   6. Components (habits, insights, drawer, profile)
+   7. Animations / keyframes
+   8. Responsive
+============================================================ */
+
+/* ---------- 1. TOKENS & RESET ---------- */
+:root{
+  --bg:        #F4F0E8;  /* warm parchment */
+  --primary:   #7BAF8E;  /* sage green */
+  --primary-d: #5E9576;
+  --secondary: #C8B6E2;  /* soft lavender */
+  --accent:    #C8A96B;  /* muted gold */
+  --earth:     #A0785A;  /* warm brown */
+  --text:      #3A3A3A;  /* dark charcoal */
+  --text-light:#7A7A7A;  /* muted text */
+  --card:      #FFFFFF;
+  --card-soft: #FBF8F2;
+  --radius:    18px;
+  --radius-sm: 12px;
+  --shadow:    0 10px 30px rgba(58,58,58,.08), 0 2px 8px rgba(58,58,58,.05);
+  --shadow-sm: 0 4px 14px rgba(58,58,58,.07);
+  --ease:      cubic-bezier(.22,.61,.36,1);
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ height:100%; }
+body{
+  font-family:'DM Sans', system-ui, sans-serif;
+  color:var(--text);
+  background:var(--bg);
+  line-height:1.55;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.serif{ font-family:'Playfair Display', serif; font-weight:600; line-height:1.2; }
+button{ font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+input,select{ font-family:inherit; }
+::selection{ background:var(--secondary); }
+
+/* App shell — mobile-first 375px frame, centered on larger screens */
+#app{
+  max-width:480px;
+  margin:0 auto;
+  min-height:100vh;
+  position:relative;
+  background:var(--bg);
+  box-shadow:0 0 60px rgba(0,0,0,.06);
+  overflow:hidden;
+}
+
+/* ---------- 2. PRIMITIVES ---------- */
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+  padding:18px;
+  margin-bottom:16px;
+}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:14px 20px;
+  border-radius:14px;
+  font-weight:500; font-size:15px;
+  background:var(--primary); color:#fff;
+  transition:transform .25s var(--ease), box-shadow .25s var(--ease), background .25s;
+  box-shadow:0 6px 16px rgba(123,175,142,.35);
+  width:100%;
+}
+.btn:active{ transform:scale(.97); }
+.btn.secondary{
+  background:#fff; color:var(--primary-d);
+  box-shadow:inset 0 0 0 1.5px rgba(123,175,142,.5);
+}
+.btn.ghost{ background:transparent; color:var(--text-light); box-shadow:none; }
+.btn:disabled{ opacity:.5; cursor:default; }
+
+label.field{ display:block; margin-bottom:14px; }
+label.field span{ display:block; font-size:13px; color:var(--text-light); margin-bottom:6px; font-weight:500; }
+.input{
+  width:100%; padding:13px 14px;
+  border-radius:12px; border:1.5px solid #E8E1D4;
+  background:var(--card-soft); font-size:15px; color:var(--text);
+  transition:border-color .2s, box-shadow .2s;
+}
+.input:focus{ outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(123,175,142,.15); }
+
+.muted{ color:var(--text-light); }
+.center{ text-align:center; }
+.row{ display:flex; align-items:center; gap:10px; }
+.spread{ display:flex; align-items:center; justify-content:space-between; }
+.pill{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 12px; border-radius:999px;
+  background:rgba(123,175,142,.14); color:var(--primary-d);
+  font-size:13px; font-weight:500;
+}
+.section-title{ font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-light); margin:4px 0 12px; font-weight:700; }
+
+/* ---------- 3. SCREENS ---------- */
+.screen{
+  display:none;
+  min-height:100vh;
+  padding:0 18px;
+  animation:fadeIn .5s var(--ease);
+}
+.screen.active{ display:block; }
+.screen.has-nav{ padding-bottom:96px; }
+.screen-scroll{ padding-top:18px; }
+
+@keyframes fadeIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+
+/* Top bar */
+.topbar{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 2px 12px;
+  background:linear-gradient(to bottom, var(--bg) 70%, rgba(244,240,232,0));
+  backdrop-filter:blur(4px);
+}
+.brand{ display:flex; align-items:center; gap:8px; font-family:'Playfair Display',serif; font-size:20px; font-weight:600; }
+.brand .leaf{ font-size:20px; }
+.topbar-right{ display:flex; align-items:center; gap:10px; }
+.icon-btn{
+  width:42px; height:42px; border-radius:50%;
+  background:var(--card); box-shadow:var(--shadow-sm);
+  display:flex; align-items:center; justify-content:center; font-size:18px;
+  transition:transform .2s var(--ease);
+}
+.icon-btn:active{ transform:scale(.92); }
+
+/* Bottom navigation */
+.bottom-nav{
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:480px;
+  display:flex; justify-content:space-around;
+  padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(14px);
+  box-shadow:0 -6px 24px rgba(58,58,58,.07);
+  z-index:50;
+}
+.nav-item{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:6px 0; font-size:10px; color:var(--text-light); font-weight:500;
+  transition:color .25s;
+}
+.nav-item .nav-ico{ font-size:21px; transition:transform .3s var(--ease); }
+.nav-item.active{ color:var(--primary-d); }
+.nav-item.active .nav-ico{ transform:translateY(-3px) scale(1.12); }
+
+/* ---------- SPLASH ---------- */
+#screen-splash{
+  display:none;
+  min-height:100vh; padding:40px 28px;
+  flex-direction:column; align-items:center; justify-content:center; text-align:center;
+  background:
+    radial-gradient(1200px 400px at 50% -10%, rgba(200,182,226,.25), transparent),
+    radial-gradient(1000px 500px at 50% 120%, rgba(123,175,142,.2), transparent),
+    var(--bg);
+}
+#screen-splash.active{ display:flex; }
+.splash-leaf{ font-size:64px; animation:sway 5s ease-in-out infinite; }
+#screen-splash h1{ font-size:42px; margin:14px 0 6px; }
+#screen-splash .tag{ font-style:italic; color:var(--text-light); font-size:17px; margin-bottom:36px; }
+.splash-btns{ width:100%; max-width:300px; display:flex; flex-direction:column; gap:12px; }
+.splash-note{ margin-top:24px; font-size:13px; color:var(--text-light); font-style:italic; }
+
+/* Auth cards */
+.auth-wrap{ min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding:30px 4px; }
+.auth-card{ background:var(--card); border-radius:22px; box-shadow:var(--shadow); padding:26px 22px; }
+.auth-card h2{ font-size:26px; margin-bottom:4px; }
+.auth-card .sub{ color:var(--text-light); font-size:14px; margin-bottom:22px; }
+.auth-card.shake{ animation:shake .5s; }
+.err-msg{ color:#C0654E; font-size:13.5px; margin-top:10px; text-align:center; min-height:18px; transition:opacity .3s; }
+.link-btn{ display:block; text-align:center; margin-top:16px; color:var(--primary-d); font-weight:500; font-size:14px; }
+
+/* Choice grids (companion / zones) */
+.choice-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(80px,1fr)); gap:10px; margin-bottom:14px; }
+.choice{
+  border-radius:16px; padding:14px 6px; text-align:center;
+  background:var(--card-soft); border:2px solid transparent;
+  transition:transform .2s var(--ease), border-color .2s, background .2s;
+}
+.choice:active{ transform:scale(.95); }
+.choice .emo{ font-size:30px; display:block; line-height:1.2; }
+.choice .lbl{ font-size:11.5px; color:var(--text-light); margin-top:4px; font-weight:500; }
+.choice.sel{ border-color:var(--primary); background:rgba(123,175,142,.12); }
+.choice.sel .lbl{ color:var(--primary-d); }
+
+/* ---------- 4. THE GARDEN SCENE ---------- */
+.garden-stage{
+  position:relative;
+  width:100%; height:360px;
+  border-radius:22px;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+  margin-bottom:14px;
+  background:#bcd9e6;
+  transition:filter 1s ease;
+  cursor:default;
+}
+.garden-stage.full{ height:62vh; min-height:420px; }
+
+/* Sky — changes with day/night */
+.sky{ position:absolute; inset:0; transition:background 1.6s ease; }
+.sky.morning{   background:linear-gradient(180deg,#FCE9C8 0%,#F6D9A8 35%,#CFE7C8 100%); }
+.sky.afternoon{ background:linear-gradient(180deg,#9FD7F2 0%,#C7E9F5 45%,#DCEFD2 100%); }
+.sky.evening{   background:linear-gradient(180deg,#F6C18B 0%,#E8967E 40%,#B98A9A 100%); }
+.sky.night{     background:linear-gradient(180deg,#1B2350 0%,#2C3A6B 45%,#3A4A6B 100%); }
+
+/* Sun / Moon */
+.celestial{
+  position:absolute; top:34px; right:40px;
+  width:54px; height:54px; border-radius:50%;
+  transition:all 1.6s ease; z-index:2;
+}
+.morning .celestial,.afternoon .celestial{
+  background:radial-gradient(circle,#FFF6D8,#FFE08A);
+  box-shadow:0 0 50px 18px rgba(255,224,138,.55);
+}
+.evening .celestial{ background:radial-gradient(circle,#FFE0B0,#F49E6B); box-shadow:0 0 46px 14px rgba(244,158,107,.5); top:120px; }
+.night .celestial{ background:radial-gradient(circle,#FBFBFF,#D7DCF0); box-shadow:0 0 30px 8px rgba(215,220,240,.4); }
+.night .celestial::after{ /* crater hint */ content:''; position:absolute; top:14px; left:14px; width:10px;height:10px;border-radius:50%; background:rgba(160,170,200,.4);}
+
+/* Stars (level 5+ at night) */
+.stars{ position:absolute; inset:0; opacity:0; transition:opacity 1.6s ease; pointer-events:none; z-index:1; }
+.night.lv5 .stars, .night.lv6 .stars{ opacity:1; }
+.star{ position:absolute; width:2px; height:2px; background:#fff; border-radius:50%; animation:twinkle 3s ease-in-out infinite; }
+
+/* Clouds */
+.clouds{ position:absolute; inset:0; z-index:2; pointer-events:none; transition:opacity 1s; }
+.cloud{
+  position:absolute; background:rgba(255,255,255,.85); border-radius:50%;
+  filter:blur(1px); animation:drift linear infinite;
+}
+.cloud::before,.cloud::after{ content:''; position:absolute; background:inherit; border-radius:50%; }
+.cloud{ width:70px; height:24px; }
+.cloud::before{ width:38px; height:38px; top:-16px; left:10px; }
+.cloud::after{ width:30px; height:30px; top:-10px; left:38px; }
+.cloud.c1{ top:30px; left:-90px; animation-duration:46s; }
+.cloud.c2{ top:70px; left:-140px; animation-duration:64s; transform:scale(.8); opacity:.8; }
+.cloud.c3{ top:18px; left:-200px; animation-duration:80s; transform:scale(1.2); opacity:.6; }
+
+/* Parallax hills (background slower) */
+.hill{ position:absolute; left:-10%; right:-10%; border-radius:50% 50% 0 0; transition:background 1.6s ease; will-change:transform; }
+.hill.back{ bottom:78px; height:130px; background:rgba(123,175,142,.35); }
+.hill.mid{  bottom:54px; height:120px; background:rgba(123,175,142,.55); left:-30%; right:-20%; }
+.night .hill.back{ background:rgba(60,80,110,.6); }
+.night .hill.mid{ background:rgba(45,62,95,.7); }
+.evening .hill.back{ background:rgba(150,110,120,.5); }
+.evening .hill.mid{ background:rgba(120,85,100,.6); }
+
+/* Ground / soil */
+.ground{
+  position:absolute; left:0; right:0; bottom:0; height:96px;
+  background:linear-gradient(180deg,#8FB97E 0%,#6E9A62 60%,#5C8453 100%);
+  border-radius:40% 40% 0 0 / 18px;
+  transition:background 1.6s ease; z-index:5;
+}
+.night .ground{ background:linear-gradient(180deg,#3B5547 0%,#2C4137 100%); }
+.evening .ground{ background:linear-gradient(180deg,#7E8A5E 0%,#5E6E48 100%); }
+.soil-patch{
+  position:absolute; bottom:60px; left:50%; transform:translateX(-50%);
+  width:120px; height:34px; background:#7A5B43; border-radius:50%;
+  box-shadow:0 6px 0 rgba(0,0,0,.05); z-index:6;
+}
+
+/* ---- The growing PLANT/TREE (center) — scales by level ---- */
+.plant{
+  position:absolute; bottom:78px; left:50%;
+  transform:translateX(-50%);
+  z-index:8;
+  transform-origin:bottom center;
+  transition:transform 1.2s var(--ease);
+  will-change:transform;
+}
+/* stem */
+.stem{
+  width:8px; height:60px; margin:0 auto;
+  background:linear-gradient(90deg,#6E9A62,#4F7A48);
+  border-radius:6px; transform-origin:bottom; animation:sway 6s ease-in-out infinite;
+}
+.trunk{
+  position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+  width:14px; height:0; background:linear-gradient(90deg,#8B6444,#6E4D34);
+  border-radius:8px; transition:height 1.2s var(--ease), width 1.2s var(--ease);
+  z-index:8;
+}
+.canopy{
+  position:absolute; left:50%; transform:translate(-50%,0) scale(0);
+  bottom:0; width:0; height:0; border-radius:50%;
+  background:radial-gradient(circle at 40% 35%, #8FC47E, #5E9450);
+  transition:all 1.2s var(--ease);
+  box-shadow:inset -10px -14px 24px rgba(0,0,0,.12);
+  animation:sway 7s ease-in-out infinite;
+  z-index:8;
+}
+.canopy::before,.canopy::after{
+  content:''; position:absolute; border-radius:50%;
+  background:radial-gradient(circle at 40% 35%, #95CC83, #6AA059);
+}
+.canopy::before{ width:60%; height:60%; top:-18%; left:6%; }
+.canopy::after{  width:55%; height:55%; top:-10%; right:4%; }
+
+/* Glow for enchanted level */
+.tree-glow{
+  position:absolute; bottom:120px; left:50%; transform:translate(-50%,0);
+  width:0; height:0; border-radius:50%; opacity:0;
+  background:radial-gradient(circle, rgba(200,169,107,.55), transparent 70%);
+  transition:all 1.2s ease; z-index:7; pointer-events:none;
+}
+
+/* Single sprout (level 1) */
+.sprout{ position:absolute; bottom:90px; left:50%; transform:translateX(-50%); z-index:8; }
+.sprout .leaf-s{
+  position:absolute; bottom:0; width:18px; height:12px;
+  background:#7BAF8E; border-radius:0 80% 0 80%;
+  transform-origin:bottom right; animation:sway 5s ease-in-out infinite;
+}
+.sprout .leaf-s.l{ left:-16px; transform:scaleX(-1); border-radius:0 80% 0 80%; }
+.sprout .leaf-s.r{ left:2px; }
+
+/* Flowers, scattered — appear by level */
+.flower{
+  position:absolute; bottom:74px; width:14px; height:14px;
+  opacity:0; transform:scale(0); transform-origin:bottom center;
+  transition:opacity .8s, transform .8s var(--ease);
+  z-index:7;
+}
+.flower .petal{ position:absolute; inset:0; border-radius:50% 50% 50% 0; transform:rotate(45deg); }
+.flower::after{ content:''; position:absolute; top:4px; left:4px; width:6px; height:6px; background:var(--accent); border-radius:50%; z-index:2; }
+.flower .stalk{ position:absolute; top:12px; left:6px; width:2px; height:18px; background:#5E9450; }
+
+/* Stone path (level 3+) */
+.path{ position:absolute; bottom:8px; left:50%; transform:translateX(-50%); display:flex; gap:6px; opacity:0; transition:opacity 1s; z-index:6; }
+.path .stone{ width:16px; height:10px; background:#CdBfA8; border-radius:50%; box-shadow:inset 0 -2px 0 rgba(0,0,0,.08); }
+
+/* Stream / waterfall (level 5+/6) */
+.stream{
+  position:absolute; bottom:0; right:18px; width:60px; height:90px;
+  opacity:0; transition:opacity 1s; z-index:6; overflow:hidden; border-radius:0 0 12px 12px;
+}
+.stream .water{ position:absolute; inset:0; background:linear-gradient(180deg,#9FD7F2,#6FB7D8); animation:flow 1.2s linear infinite; background-size:100% 18px; }
+
+/* Critters: butterflies (lv3+), birds (lv4+), fireflies (lv3+ night), petals on level-up */
+.critter{ position:absolute; z-index:9; pointer-events:none; }
+.butterfly{ font-size:16px; top:120px; left:-30px; opacity:0; }
+.lv3 .butterfly, .lv4 .butterfly, .lv5 .butterfly, .lv6 .butterfly{ opacity:1; animation:flutter 14s linear infinite; }
+.bird{ font-size:15px; top:60px; left:-40px; opacity:0; }
+.lv4 .bird, .lv5 .bird, .lv6 .bird{ opacity:1; animation:flyAcross 18s linear infinite; }
+.firefly{ position:absolute; width:5px; height:5px; border-radius:50%; background:#FFE6A0; box-shadow:0 0 8px 3px rgba(255,230,160,.7); opacity:0; z-index:9; }
+.night.lv3 .firefly,.night.lv4 .firefly,.night.lv5 .firefly,.night.lv6 .firefly{ animation:floatFire 9s ease-in-out infinite; }
+
+/* Rain & rainbow (weather) */
+.rain{ position:absolute; inset:0; opacity:0; transition:opacity 1s; z-index:11; pointer-events:none; overflow:hidden; }
+.rain.on{ opacity:1; }
+.drop{ position:absolute; top:-20px; width:2px; height:16px; background:linear-gradient(rgba(255,255,255,.1),rgba(190,215,235,.8)); animation:fall linear infinite; }
+.rainbow{
+  position:absolute; bottom:60px; left:50%; transform:translateX(-50%);
+  width:240px; height:120px; border-radius:240px 240px 0 0;
+  border:8px solid; border-bottom:none; opacity:0; transition:opacity 1.4s; z-index:4;
+  border-image:linear-gradient(90deg,#ff8e8e,#ffd28e,#fff58e,#9be88e,#8ec5ff,#c8b6e2) 1;
+  filter:saturate(.9);
+}
+.rainbow.on{ opacity:.7; }
+
+/* Weather dimming overlay */
+.weather-veil{ position:absolute; inset:0; background:rgba(80,90,110,0); transition:background 1.2s; z-index:10; pointer-events:none; }
+.garden-stage.w-cloudy .weather-veil{ background:rgba(90,95,110,.18); }
+.garden-stage.w-rainy .weather-veil{ background:rgba(70,80,100,.3); }
+
+/* Garden HUD overlay (level banner) */
+.garden-hud{
+  position:absolute; left:14px; bottom:14px; right:14px; z-index:14;
+  background:rgba(255,255,255,.78); backdrop-filter:blur(8px);
+  border-radius:16px; padding:10px 14px; box-shadow:var(--shadow-sm);
+}
+.garden-hud .lvl-name{ font-family:'Playfair Display',serif; font-size:16px; font-weight:600; }
+.garden-hud .xp{ font-size:12px; color:var(--text-light); }
+.xp-bar{ height:7px; border-radius:6px; background:rgba(123,175,142,.2); margin-top:6px; overflow:hidden; }
+.xp-bar > span{ display:block; height:100%; background:linear-gradient(90deg,var(--primary),var(--accent)); border-radius:6px; transition:width 1s var(--ease); }
+
+.weather-badge{
+  position:absolute; top:12px; left:12px; z-index:14;
+  background:rgba(255,255,255,.8); backdrop-filter:blur(8px);
+  padding:7px 12px; border-radius:999px; box-shadow:var(--shadow-sm);
+  font-size:13px; font-weight:500; display:flex; align-items:center; gap:6px;
+}
+.daynight-badge{
+  position:absolute; top:12px; right:12px; z-index:14;
+  background:rgba(255,255,255,.8); backdrop-filter:blur(8px);
+  padding:7px 12px; border-radius:999px; box-shadow:var(--shadow-sm);
+  font-size:13px; font-weight:500;
+}
+
+/* Zone hotspots inside full garden */
+.zone-dot{
+  position:absolute; z-index:13; width:46px; height:46px; border-radius:50%;
+  background:rgba(255,255,255,.85); box-shadow:var(--shadow-sm);
+  display:flex; align-items:center; justify-content:center; font-size:22px;
+  transition:transform .25s var(--ease); cursor:pointer;
+}
+.zone-dot:active{ transform:scale(.9); }
+.zone-dot .ring{ position:absolute; inset:-4px; border-radius:50%; border:2.5px solid var(--primary); opacity:.6; }
+
+/* Level-up petal burst */
+.petal-burst{ position:absolute; inset:0; z-index:30; pointer-events:none; overflow:hidden; }
+.petal-burst .pt{ position:absolute; font-size:18px; animation:petalFall 2.6s ease-in forwards; }
+
+/* ---------- 5. COMPANION ---------- */
+.companion-sprite{
+  position:absolute; bottom:96px; left:24px; z-index:12;
+  font-size:34px; animation:bob 3.5s ease-in-out infinite;
+  filter:drop-shadow(0 4px 6px rgba(0,0,0,.15));
+}
+.companion-card{ display:flex; gap:12px; align-items:center; }
+.companion-card .av{ font-size:38px; flex:none; animation:bob 3.5s ease-in-out infinite; }
+
+/* ---------- 6. COMPONENTS ---------- */
+/* Greeting block */
+.greeting h1{ font-size:28px; margin-bottom:2px; }
+.greeting .sub{ color:var(--text-light); font-size:14px; }
+
+.affirm-card{ border:1.5px solid rgba(200,169,107,.5); background:linear-gradient(180deg,#FFFDF7,#FBF6EA); }
+.affirm-card .q{ font-family:'Playfair Display',serif; font-style:italic; font-size:17px; line-height:1.5; }
+
+/* Zone cards (habits) */
+.zone-card{ overflow:hidden; }
+.zone-head{ display:flex; align-items:center; gap:12px; }
+.zone-head .zemo{
+  width:46px; height:46px; border-radius:14px; flex:none;
+  display:flex; align-items:center; justify-content:center; font-size:24px;
+  background:rgba(123,175,142,.12);
+}
+.zone-head .ztitle{ flex:1; }
+.zone-head .ztitle b{ font-size:15.5px; }
+.zone-head .ztitle .zlvl{ font-size:12px; color:var(--text-light); }
+.zone-head .chev{ transition:transform .3s var(--ease); color:var(--text-light); }
+.zone-card.open .chev{ transform:rotate(180deg); }
+.zmeter{ height:6px; border-radius:6px; background:rgba(0,0,0,.06); margin-top:8px; overflow:hidden; }
+.zmeter > span{ display:block; height:100%; background:linear-gradient(90deg,var(--primary),var(--accent)); transition:width .8s var(--ease); }
+.zone-body{ max-height:0; opacity:0; overflow:hidden; transition:max-height .4s var(--ease), opacity .3s, margin .3s; }
+.zone-card.open .zone-body{ max-height:600px; opacity:1; margin-top:14px; }
+
+.habit{
+  display:flex; align-items:center; gap:12px; padding:11px 0;
+  border-top:1px solid #F0EBE0;
+}
+.habit:first-child{ border-top:none; }
+.check{
+  width:26px; height:26px; border-radius:50%; flex:none;
+  border:2px solid var(--primary); position:relative;
+  transition:background .25s, transform .2s;
+}
+.check.done{ background:var(--primary); }
+.check.done::after{ content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; }
+.check:active{ transform:scale(.85); }
+.habit-info{ flex:1; }
+.habit-info .hn{ font-size:14.5px; font-weight:500; }
+.habit-info.done .hn{ text-decoration:line-through; color:var(--text-light); }
+.habit-info .hf{ font-size:11.5px; color:var(--text-light); }
+.streak-badge{ font-size:12px; color:var(--accent); font-weight:700; display:flex; align-items:center; gap:3px; flex:none; }
+.add-habit-row{ display:flex; gap:8px; margin-top:12px; }
+.add-habit-row .input{ flex:1; }
+.add-habit-row .freq{ width:auto; flex:none; }
+.mini-btn{ background:var(--primary); color:#fff; border-radius:10px; padding:0 14px; font-size:20px; font-weight:500; flex:none; box-shadow:var(--shadow-sm); }
+
+/* Insights */
+.insight{ display:flex; gap:12px; align-items:flex-start; }
+.insight .ico{ font-size:24px; flex:none; }
+.insight b{ font-size:22px; font-family:'Playfair Display',serif; }
+.story-card{ border:1.5px solid rgba(200,169,107,.5); background:linear-gradient(180deg,#FFFDF7,#FBF6EA); }
+.story-card p{ font-family:'Playfair Display',serif; font-style:italic; line-height:1.6; font-size:15.5px; }
+
+/* Sound drawer */
+.drawer-scrim{ position:fixed; inset:0; background:rgba(40,40,40,.4); opacity:0; pointer-events:none; transition:opacity .35s; z-index:60; }
+.drawer-scrim.open{ opacity:1; pointer-events:auto; }
+.drawer{
+  position:fixed; left:50%; bottom:0; transform:translate(-50%,100%);
+  width:100%; max-width:480px;
+  background:var(--card); border-radius:24px 24px 0 0;
+  padding:14px 20px calc(26px + env(safe-area-inset-bottom));
+  box-shadow:0 -10px 40px rgba(0,0,0,.18);
+  transition:transform .4s var(--ease); z-index:61;
+}
+.drawer.open{ transform:translate(-50%,0); }
+.drawer .grip{ width:42px; height:5px; border-radius:3px; background:#E0D9CC; margin:2px auto 16px; }
+.sound-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px; }
+.sound{
+  border-radius:16px; padding:14px 6px; text-align:center; background:var(--card-soft);
+  border:2px solid transparent; transition:border-color .2s, background .2s, transform .15s;
+}
+.sound:active{ transform:scale(.95); }
+.sound .se{ font-size:26px; }
+.sound .sl{ font-size:11px; color:var(--text-light); margin-top:4px; }
+.sound.on{ border-color:var(--primary); background:rgba(123,175,142,.12); }
+.vol-row{ display:flex; align-items:center; gap:12px; }
+input[type=range]{ -webkit-appearance:none; appearance:none; flex:1; height:6px; border-radius:6px; background:rgba(123,175,142,.25); }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:var(--primary); box-shadow:var(--shadow-sm); cursor:pointer; }
+input[type=range]::-moz-range-thumb{ width:20px; height:20px; border:none; border-radius:50%; background:var(--primary); cursor:pointer; }
+.active-sound-label{ font-size:13px; color:var(--text-light); margin-top:10px; text-align:center; }
+
+/* Profile */
+.profile-head{ text-align:center; padding:8px 0 14px; }
+.profile-head .av{ font-size:56px; animation:bob 3.5s ease-in-out infinite; }
+.profile-head h2{ font-size:24px; margin-top:6px; }
+.stat-row{ display:flex; gap:12px; }
+.stat-row .card{ flex:1; text-align:center; margin-bottom:0; }
+.stat-row .card b{ font-size:26px; font-family:'Playfair Display',serif; display:block; }
+.stat-row .card span{ font-size:12px; color:var(--text-light); }
+.zone-toggle{ display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-top:1px solid #F0EBE0; }
+.zone-toggle:first-child{ border-top:none; }
+.toggle{ width:46px; height:27px; border-radius:999px; background:#E0D9CC; position:relative; transition:background .25s; flex:none; }
+.toggle::after{ content:''; position:absolute; top:3px; left:3px; width:21px; height:21px; border-radius:50%; background:#fff; box-shadow:var(--shadow-sm); transition:transform .25s var(--ease); }
+.toggle.on{ background:var(--primary); }
+.toggle.on::after{ transform:translateX(19px); }
+.foot-note{ text-align:center; font-size:12px; color:var(--text-light); margin:16px 0 8px; }
+
+/* Toast */
+.toast{
+  position:fixed; bottom:110px; left:50%; transform:translate(-50%,20px);
+  background:var(--text); color:#fff; padding:11px 18px; border-radius:999px;
+  font-size:13.5px; opacity:0; pointer-events:none; transition:all .35s var(--ease); z-index:90;
+  box-shadow:var(--shadow); max-width:90%; text-align:center;
+}
+.toast.show{ opacity:1; transform:translate(-50%,0); }
+
+/* Zone detail modal */
+.modal-scrim{ position:fixed; inset:0; background:rgba(40,40,40,.45); opacity:0; pointer-events:none; transition:opacity .3s; z-index:70; display:flex; align-items:center; justify-content:center; padding:24px; }
+.modal-scrim.open{ opacity:1; pointer-events:auto; }
+.modal{ background:var(--card); border-radius:22px; padding:22px; width:100%; max-width:360px; transform:scale(.92); transition:transform .3s var(--ease); box-shadow:var(--shadow); }
+.modal-scrim.open .modal{ transform:scale(1); }
+
+/* ---------- 7. KEYFRAMES ---------- */
+@keyframes sway{ 0%,100%{ transform:rotate(-2deg);} 50%{ transform:rotate(2deg);} }
+@keyframes bob{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-6px);} }
+@keyframes shake{ 0%,100%{transform:translateX(0);} 20%{transform:translateX(-9px);} 40%{transform:translateX(9px);} 60%{transform:translateX(-6px);} 80%{transform:translateX(6px);} }
+@keyframes drift{ from{ transform:translateX(0);} to{ transform:translateX(560px);} }
+@keyframes twinkle{ 0%,100%{opacity:.2;} 50%{opacity:1;} }
+@keyframes flow{ from{ background-position:0 0;} to{ background-position:0 18px;} }
+@keyframes fall{ from{ transform:translateY(-20px);} to{ transform:translateY(380px);} }
+@keyframes flutter{
+  0%{ transform:translate(0,0) rotate(0);} 25%{ transform:translate(120px,-30px) rotate(10deg);}
+  50%{ transform:translate(240px,10px) rotate(-8deg);} 75%{ transform:translate(360px,-20px) rotate(6deg);}
+  100%{ transform:translate(480px,0) rotate(0); opacity:0;}
+}
+@keyframes flyAcross{ 0%{ transform:translate(0,0);} 50%{ transform:translate(260px,-18px);} 100%{ transform:translate(520px,0); opacity:0;} }
+@keyframes floatFire{ 0%,100%{ transform:translate(0,0); opacity:0;} 25%{opacity:1;} 50%{ transform:translate(20px,-22px); opacity:.9;} 75%{opacity:1;} }
+@keyframes petalFall{ 0%{ transform:translateY(-20px) rotate(0); opacity:1;} 100%{ transform:translateY(380px) rotate(360deg); opacity:0;} }
+@keyframes pop{ 0%{transform:scale(0);} 70%{transform:scale(1.15);} 100%{transform:scale(1);} }
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.2s !important; }
+}
+
+/* ---------- 8. RESPONSIVE ---------- */
+@media (min-width:520px){
+  .garden-stage{ height:400px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===================== SPLASH ===================== -->
+  <section id="screen-splash" class="screen">
+    <div class="splash-leaf">🌿</div>
+    <h1>Soul Garden</h1>
+    <p class="tag">Grow your habits. Grow yourself.</p>
+    <div class="splash-btns">
+      <button class="btn" onclick="go('signin')">Sign In</button>
+      <button class="btn secondary" onclick="go('signup')">Create Account</button>
+    </div>
+    <p class="splash-note">Your garden remembers you.</p>
+  </section>
+
+  <!-- ===================== SIGN UP ===================== -->
+  <section id="screen-signup" class="screen">
+    <div class="auth-wrap">
+      <div class="auth-card" id="signup-card">
+        <h2>Plant your garden</h2>
+        <p class="sub">A few details and your world begins to grow.</p>
+
+        <label class="field"><span>Your Name</span>
+          <input class="input" id="su-name" type="text" placeholder="e.g. Anushka" autocomplete="name" />
+        </label>
+        <label class="field"><span>Email Address</span>
+          <input class="input" id="su-email" type="email" placeholder="you@example.com" autocomplete="email" />
+        </label>
+        <label class="field"><span>Password</span>
+          <input class="input" id="su-pass" type="password" placeholder="Choose a password" autocomplete="new-password" />
+        </label>
+
+        <p class="section-title" style="margin-top:6px;">Choose Your Companion</p>
+        <div class="choice-grid" id="companion-grid"></div>
+
+        <p class="section-title">Choose Your First Goal Zone</p>
+        <div class="choice-grid" id="zone-grid"></div>
+
+        <button class="btn" id="su-submit" onclick="createAccount()">Begin My Journey</button>
+        <p class="err-msg" id="su-err"></p>
+        <a class="link-btn" onclick="go('signin')">Already have a garden? Sign in →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SIGN IN ===================== -->
+  <section id="screen-signin" class="screen">
+    <div class="auth-wrap">
+      <div class="auth-card" id="signin-card">
+        <h2>Welcome back</h2>
+        <p class="sub">Your garden has been waiting for you.</p>
+        <label class="field"><span>Email Address</span>
+          <input class="input" id="si-email" type="email" placeholder="you@example.com" autocomplete="email" />
+        </label>
+        <label class="field"><span>Password</span>
+          <input class="input" id="si-pass" type="password" placeholder="Your password" autocomplete="current-password" />
+        </label>
+        <button class="btn" onclick="signIn()">Enter My Garden</button>
+        <p class="err-msg" id="si-err"></p>
+        <a class="link-btn" onclick="go('signup')">New here? Create your garden →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== HOME ===================== -->
+  <section id="screen-home" class="screen has-nav">
+    <div class="topbar">
+      <div class="brand"><span class="leaf">🌿</span> Soul Garden</div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="home-companion-ico" onclick="go('profile')">🦊</button>
+        <button class="icon-btn" onclick="openDrawer()">🔊</button>
+      </div>
+    </div>
+    <div class="screen-scroll">
+      <div class="greeting">
+        <h1 id="greeting-text">Good Morning</h1>
+        <p class="sub" id="greeting-sub">Your garden is cheering for you.</p>
+      </div>
+
+      <!-- Hero garden (compact) -->
+      <div id="home-garden-mount"></div>
+
+      <!-- Companion message -->
+      <div class="card companion-card">
+        <div class="av" id="home-comp-av">🦊</div>
+        <div>
+          <b id="home-comp-name">Fox</b>
+          <p class="muted" id="home-comp-msg" style="font-size:14px;">You showed up again. Your garden noticed.</p>
+        </div>
+      </div>
+
+      <!-- Daily affirmation -->
+      <div class="card affirm-card">
+        <p class="section-title" style="margin-bottom:6px;">Daily Affirmation</p>
+        <p class="q" id="affirmation">You are becoming who you are meant to be.</p>
+      </div>
+
+      <!-- Goal insight -->
+      <div class="card">
+        <p class="section-title" style="margin-bottom:6px;">Cycle Wisdom</p>
+        <p id="goal-insight" style="font-size:14.5px;">Small, repeated steps shape the deepest roots.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== GARDEN (FULL) ===================== -->
+  <section id="screen-garden" class="screen has-nav">
+    <div class="topbar">
+      <div class="brand"><span class="leaf">🌿</span> The Garden</div>
+      <div class="topbar-right">
+        <button class="icon-btn" onclick="openDrawer()">🔊</button>
+      </div>
+    </div>
+    <div class="screen-scroll">
+      <div id="full-garden-mount"></div>
+      <p class="center muted" style="font-size:13px; margin-top:4px;">Tap a glowing zone to peek inside ✨</p>
+    </div>
+  </section>
+
+  <!-- ===================== HABITS ===================== -->
+  <section id="screen-habits" class="screen has-nav">
+    <div class="topbar">
+      <div class="brand"><span class="leaf">✅</span> Habits & Goals</div>
+    </div>
+    <div class="screen-scroll" id="habits-list"></div>
+  </section>
+
+  <!-- ===================== INSIGHTS ===================== -->
+  <section id="screen-insights" class="screen has-nav">
+    <div class="topbar">
+      <div class="brand"><span class="leaf">📊</span> Insights</div>
+    </div>
+    <div class="screen-scroll" id="insights-list"></div>
+  </section>
+
+  <!-- ===================== PROFILE ===================== -->
+  <section id="screen-profile" class="screen has-nav">
+    <div class="topbar">
+      <div class="brand"><span class="leaf">👤</span> Profile</div>
+    </div>
+    <div class="screen-scroll" id="profile-body"></div>
+  </section>
+
+  <!-- ===================== BOTTOM NAV ===================== -->
+  <nav class="bottom-nav" id="bottom-nav" style="display:none;">
+    <button class="nav-item" data-screen="home"     onclick="nav('home')"><span class="nav-ico">🏠</span>Home</button>
+    <button class="nav-item" data-screen="garden"   onclick="nav('garden')"><span class="nav-ico">🌿</span>Garden</button>
+    <button class="nav-item" data-screen="habits"   onclick="nav('habits')"><span class="nav-ico">✅</span>Habits</button>
+    <button class="nav-item" data-screen="insights" onclick="nav('insights')"><span class="nav-ico">📊</span>Insights</button>
+    <button class="nav-item" data-screen="profile"  onclick="nav('profile')"><span class="nav-ico">👤</span>Profile</button>
+  </nav>
+
+  <!-- ===================== SOUND DRAWER ===================== -->
+  <div class="drawer-scrim" id="drawer-scrim" onclick="closeDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="grip"></div>
+    <p class="section-title" style="text-align:center;">Ambient Sound</p>
+    <div class="sound-grid" id="sound-grid"></div>
+    <div class="vol-row">
+      <button class="icon-btn" id="mute-btn" onclick="toggleMute()" style="width:38px;height:38px;font-size:16px;box-shadow:none;background:var(--card-soft);">🔊</button>
+      <input type="range" id="vol" min="0" max="100" value="55" oninput="setVolume(this.value)" />
+    </div>
+    <p class="active-sound-label" id="active-sound-label">No soundscape playing</p>
+  </div>
+
+  <!-- ===================== ZONE MODAL ===================== -->
+  <div class="modal-scrim" id="zone-modal-scrim" onclick="closeZoneModal(event)">
+    <div class="modal" id="zone-modal"></div>
+  </div>
+
+  <!-- ===================== TOAST ===================== -->
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ============================================================
+   SOUL GARDEN — APPLICATION LOGIC
+   Sections:
+   A. Constants & data definitions
+   B. Storage helpers
+   C. Navigation / screens
+   D. Auth (signup / signin / signout)
+   E. Garden engine (level, weather, day-night, scene build)
+   F. Home dashboard
+   G. Habits & goals
+   H. Insights
+   I. Profile
+   J. Ambient sound (WebAudio)
+   K. Boot
+============================================================ */
+
+/* ---------- A. CONSTANTS ---------- */
+const LS = {
+  user:   'soulGarden_user',
+  habits: 'soulGarden_habits',
+  logs:   'soulGarden_logs',
+  garden: 'soulGarden_garden',
+  session:'soulGarden_session'
+};
+
+const COMPANIONS = [
+  { id:'owl',       emo:'🦉', name:'Owl' },
+  { id:'butterfly', emo:'🦋', name:'Butterfly' },
+  { id:'fox',       emo:'🦊', name:'Fox' },
+  { id:'turtle',    emo:'🐢', name:'Turtle' },
+  { id:'bee',       emo:'🐝', name:'Bee' }
+];
+
+const ZONES = [
+  { id:'prosperity', emo:'💰', name:'Prosperity Patch', tip:'Tend your finances like seeds — patience compounds.' },
+  { id:'wisdom',     emo:'📚', name:'Wisdom Corner',    tip:'A few pages a day grows a forest of understanding.' },
+  { id:'wellness',   emo:'💪', name:'Wellness Grove',   tip:'Your body is the soil everything else grows in.' },
+  { id:'selflove',   emo:'❤️', name:'Self-Love Garden', tip:'Kindness to yourself waters every other zone.' },
+  { id:'peace',      emo:'🧘', name:'Peace Pond',       tip:'Stillness is not empty — it is where roots deepen.' }
+];
+
+const LEVELS = [
+  { n:1, emo:'🌱', name:'Seed' },
+  { n:2, emo:'🌿', name:'Young Plant' },
+  { n:3, emo:'🌷', name:'Blooming Garden' },
+  { n:4, emo:'🌳', name:'Growing Tree' },
+  { n:5, emo:'🌸', name:'Flourishing Garden' },
+  { n:6, emo:'✨', name:'Enchanted Garden' }
+];
+// XP thresholds per level (cumulative). Each habit completion = 10 XP.
+const XP_PER_LEVEL = 80; // 8 completions per level
+
+const AFFIRMATIONS = [
+  'Growth takes time. You are right on schedule.',
+  'Every small step is still a step forward.',
+  'Your effort today is your garden tomorrow.',
+  'Rest is part of the journey.',
+  'You are becoming who you are meant to be.'
+];
+
+const SOUNDS = [
+  { id:'birds',  emo:'🐦', name:'Birds' },
+  { id:'rain',   emo:'🌧', name:'Rain' },
+  { id:'wind',   emo:'🌬', name:'Wind' },
+  { id:'leaves', emo:'🍃', name:'Leaves' },
+  { id:'stream', emo:'💦', name:'Stream' },
+  { id:'nature', emo:'🦋', name:'Full Nature' }
+];
+
+/* ---------- B. STORAGE HELPERS ---------- */
+const store = {
+  get(k, fallback){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } },
+  set(k, v){ localStorage.setItem(k, JSON.stringify(v)); },
+  del(k){ localStorage.removeItem(k); }
+};
+const todayStr = () => new Date().toISOString().slice(0,10);
+function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
+
+/* Selections for signup */
+let pick = { companion:'fox', zone:'wellness' };
+
+/* ---------- C. NAVIGATION ---------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el = document.getElementById('screen-'+id);
+  if(el) el.classList.add('active');
+  window.scrollTo(0,0);
+}
+function go(id){ showScreen(id); document.getElementById('bottom-nav').style.display='none'; }
+
+function nav(id){
+  showScreen(id);
+  document.getElementById('bottom-nav').style.display='flex';
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.screen===id));
+  // Refresh dynamic screens
+  if(id==='home')     renderHome();
+  if(id==='garden')   renderFullGarden();
+  if(id==='habits')   renderHabits();
+  if(id==='insights') renderInsights();
+  if(id==='profile')  renderProfile();
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ---------- D. AUTH ---------- */
+function buildChoices(){
+  const cg=document.getElementById('companion-grid');
+  cg.innerHTML = COMPANIONS.map(c=>`
+    <div class="choice ${c.id===pick.companion?'sel':''}" data-c="${c.id}" onclick="selectCompanion('${c.id}')">
+      <span class="emo">${c.emo}</span><span class="lbl">${c.name}</span>
+    </div>`).join('');
+  const zg=document.getElementById('zone-grid');
+  zg.innerHTML = ZONES.map(z=>`
+    <div class="choice ${z.id===pick.zone?'sel':''}" data-z="${z.id}" onclick="selectZone('${z.id}')">
+      <span class="emo">${z.emo}</span><span class="lbl">${z.name.split(' ')[0]}</span>
+    </div>`).join('');
+}
+function selectCompanion(id){ pick.companion=id; document.querySelectorAll('[data-c]').forEach(e=>e.classList.toggle('sel', e.dataset.c===id)); }
+function selectZone(id){ pick.zone=id; document.querySelectorAll('[data-z]').forEach(e=>e.classList.toggle('sel', e.dataset.z===id)); }
+
+function createAccount(){
+  const name=document.getElementById('su-name').value.trim();
+  const email=document.getElementById('su-email').value.trim().toLowerCase();
+  const pass=document.getElementById('su-pass').value;
+  const err=document.getElementById('su-err');
+  if(!name || !email || !pass){ err.textContent='Please fill in your name, email and password.'; return; }
+  if(!/^\S+@\S+\.\S+$/.test(email)){ err.textContent='That email looks a little off. Try again.'; return; }
+
+  const user = { name, email, pass, companion:pick.companion, zones:[pick.zone], created:todayStr() };
+  store.set(LS.user, user);
+  store.set(LS.habits, []);
+  store.set(LS.logs, []);
+  store.set(LS.garden, { xp:0, weeklyStoryShown:0 });
+  store.set(LS.session, true);
+  err.textContent='';
+  enterApp();
+  toast('Welcome to your garden, '+name+' 🌱');
+}
+
+function signIn(){
+  const email=document.getElementById('si-email').value.trim().toLowerCase();
+  const pass=document.getElementById('si-pass').value;
+  const user=store.get(LS.user,null);
+  const err=document.getElementById('si-err');
+  if(user && user.email===email && user.pass===pass){
+    store.set(LS.session,true);
+    err.textContent='';
+    enterApp();
+  } else {
+    err.textContent="We couldn't find your garden. Try again.";
+    const card=document.getElementById('signin-card');
+    card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+  }
+}
+
+function signOut(){
+  store.del(LS.session);
+  stopAllSounds();
+  go('splash');
+}
+
+function enterApp(){
+  nav('home');
+}
+
+/* ---------- E. GARDEN ENGINE ---------- */
+function getGarden(){ return store.get(LS.garden,{xp:0,weeklyStoryShown:0}); }
+function getLevel(xp){ return Math.min(6, Math.floor(xp / XP_PER_LEVEL) + 1); }
+function levelProgress(xp){
+  const lv=getLevel(xp);
+  if(lv>=6) return { lv, into:XP_PER_LEVEL, need:XP_PER_LEVEL, pct:100 };
+  const into = xp - (lv-1)*XP_PER_LEVEL;
+  return { lv, into, need:XP_PER_LEVEL, pct:Math.round(into/XP_PER_LEVEL*100) };
+}
+
+// Determine time-of-day bucket from real local time
+function timeOfDay(){
+  const h=new Date().getHours();
+  if(h>=5 && h<12) return 'morning';
+  if(h>=12 && h<17) return 'afternoon';
+  if(h>=17 && h<20) return 'evening';
+  return 'night';
+}
+function greetWord(){
+  const t=timeOfDay();
+  return t==='morning'?'Good Morning': t==='afternoon'?'Good Afternoon': t==='evening'?'Good Evening':'Good Night';
+}
+
+// Weather is derived from recent habit consistency + streak
+function computeWeather(){
+  const logs=store.get(LS.logs,[]);
+  const habits=store.get(LS.habits,[]);
+  if(!logs.length) return { id:'cloudy', emo:'☁️', label:'Cloudy', note:'Your garden is waiting for its first step.' };
+  // days since last activity
+  const last = logs.map(l=>l.date).sort().slice(-1)[0];
+  const idle = daysBetween(last, todayStr());
+  if(idle>=4) return { id:'rainy', emo:'🌧', label:'Rainy', note:'It has been quiet. A small habit brings the sun back.' };
+  // completions in last 7 days
+  const weekAgo = new Date(Date.now()-6*86400000).toISOString().slice(0,10);
+  const recent = logs.filter(l=>l.date>=weekAgo).length;
+  const streak = longestCurrentStreak();
+  if(streak>=7) return { id:'rainbow', emo:'🌈', label:'Rainbow', note:'An exceptional streak! Your garden is celebrating.' };
+  if(recent>=8) return { id:'sunny', emo:'☀️', label:'Sunny', note:'High consistency. Everything is in bloom.' };
+  if(recent>=3) return { id:'partly', emo:'🌤', label:'Partly Cloudy', note:'Good progress. Keep the breeze going.' };
+  return { id:'cloudy', emo:'☁️', label:'Cloudy', note:'A few missed steps. Today is a fresh start.' };
+}
+
+// Build the layered garden DOM. compact=true for home hero.
+function buildGarden(mountId, full){
+  const g=getGarden();
+  const lp=levelProgress(g.xp);
+  const tod=timeOfDay();
+  const weather=computeWeather();
+  const user=store.get(LS.user,{companion:'fox'});
+  const comp=COMPANIONS.find(c=>c.id===user.companion)||COMPANIONS[2];
+
+  const stageCls = `garden-stage ${full?'full':''} lv${lp.lv} ${tod} w-${weather.id}`;
+
+  // stars
+  let stars=''; for(let i=0;i<40;i++){ stars+=`<span class="star" style="top:${Math.random()*55}%;left:${Math.random()*100}%;animation-delay:${(Math.random()*3).toFixed(1)}s"></span>`; }
+  // fireflies
+  let fireflies=''; for(let i=0;i<8;i++){ fireflies+=`<span class="firefly" style="bottom:${90+Math.random()*60}px;left:${15+Math.random()*70}%;animation-delay:${(Math.random()*9).toFixed(1)}s"></span>`; }
+  // rain drops
+  let drops=''; for(let i=0;i<50;i++){ drops+=`<span class="drop" style="left:${Math.random()*100}%;animation-duration:${(0.5+Math.random()*0.6).toFixed(2)}s;animation-delay:${(Math.random()*1).toFixed(2)}s"></span>`; }
+  // flowers — number grows with level
+  const flowerCount = [0,0,3,6,9,12,16][lp.lv];
+  const flowerColors=['#E59ABF','#F2C14E','#C8B6E2','#EF8F77','#9BD49B','#F5A9C1'];
+  let flowers='';
+  for(let i=0;i<flowerCount;i++){
+    const x = 10 + Math.random()*80;
+    const c = flowerColors[i%flowerColors.length];
+    const d = (Math.random()*0.6).toFixed(2);
+    flowers+=`<div class="flower" style="left:${x}%; bottom:${66+Math.random()*16}px; opacity:1; transform:scale(${(0.7+Math.random()*0.6).toFixed(2)}); transition-delay:${d}s">
+      <span class="stalk"></span><span class="petal" style="background:${c}"></span></div>`;
+  }
+
+  // Plant: sprout for lv1, tree from lv2+
+  let plant='';
+  if(lp.lv===1){
+    plant = `<div class="sprout"><span class="leaf-s l"></span><span class="leaf-s r"></span><div class="stem" style="height:46px"></div></div>`;
+  } else {
+    const trunkH = [0,0,40,70,100,140,170][lp.lv];
+    const trunkW = [0,0,12,16,20,26,32][lp.lv];
+    const canopyS = [0,0,70,110,150,200,250][lp.lv];
+    plant = `
+      <div class="trunk" style="height:${trunkH}px;width:${trunkW}px"></div>
+      <div class="canopy" style="width:${canopyS}px;height:${canopyS}px;bottom:${trunkH-10}px;transform:translate(-50%,0) scale(1)"></div>
+      ${lp.lv>=6?`<div class="tree-glow" style="width:${canopyS*1.6}px;height:${canopyS*1.6}px;bottom:${trunkH}px;opacity:.9"></div>`:''}
+    `;
+  }
+
+  // Zone hotspots (only in full view), positioned around ground
+  let zoneDots='';
+  if(full){
+    const positions=[
+      {left:'10%',bottom:'18px'},{left:'78%',bottom:'30px'},{left:'24%',bottom:'8px'},
+      {left:'62%',bottom:'10px'},{left:'44%',bottom:'24px'}
+    ];
+    (user.zones||[]).forEach((zid,i)=>{
+      const z=ZONES.find(x=>x.id===zid); if(!z) return;
+      const p=positions[i%positions.length];
+      zoneDots+=`<div class="zone-dot" style="left:${p.left};bottom:${p.bottom}" onclick="openZoneModal('${z.id}')"><span class="ring"></span>${z.emo}</div>`;
+    });
+  }
+
+  const html=`
+    <div class="${stageCls}" id="${full?'stage-full':'stage-home'}">
+      <div class="sky ${tod}">
+        <div class="celestial"></div>
+        <div class="stars">${stars}</div>
+        <div class="clouds" style="opacity:${weather.id==='sunny'||weather.id==='rainbow'?0.5:1}">
+          <span class="cloud c1"></span><span class="cloud c2"></span><span class="cloud c3"></span>
+        </div>
+        <div class="rainbow ${weather.id==='rainbow'?'on':''}"></div>
+      </div>
+
+      <div class="hill back"></div>
+      <div class="hill mid"></div>
+
+      <!-- birds & butterflies -->
+      <span class="critter bird">🐦</span>
+      <span class="critter butterfly">🦋</span>
+      <span class="critter butterfly" style="top:150px;animation-delay:6s">🦋</span>
+      ${fireflies}
+
+      <div class="ground">
+        <div class="path ${lp.lv>=3?'':''}" style="opacity:${lp.lv>=3?1:0}">
+          <span class="stone"></span><span class="stone"></span><span class="stone"></span><span class="stone"></span>
+        </div>
+      </div>
+      <div class="soil-patch"></div>
+
+      ${flowers}
+
+      <div class="stream" style="opacity:${lp.lv>=5?1:0}"><div class="water"></div></div>
+
+      <div class="plant">${plant}</div>
+
+      <!-- companion living in the garden -->
+      <div class="companion-sprite" title="${comp.name}">${comp.emo}</div>
+
+      <!-- weather rain layer -->
+      <div class="rain ${weather.id==='rainy'?'on':''}">${drops}</div>
+      <div class="weather-veil"></div>
+
+      ${zoneDots}
+
+      <div class="weather-badge">${weather.emo} ${weather.label}</div>
+      <div class="daynight-badge">${tod==='morning'?'☀️ Morning':tod==='afternoon'?'🌤 Afternoon':tod==='evening'?'🌅 Evening':'🌙 Night'}</div>
+
+      <div class="garden-hud">
+        <div class="spread">
+          <span class="lvl-name">${LEVELS[lp.lv-1].emo} Level ${lp.lv} · ${LEVELS[lp.lv-1].name}</span>
+          <span class="xp">${lp.lv>=6?'MAX':lp.into+' / '+lp.need+' XP'}</span>
+        </div>
+        <div class="xp-bar"><span style="width:${lp.pct}%"></span></div>
+      </div>
+    </div>`;
+
+  document.getElementById(mountId).innerHTML = html;
+}
+
+// Petal burst animation on level up
+function petalBurst(stageId){
+  const stage=document.getElementById(stageId);
+  if(!stage) return;
+  const burst=document.createElement('div');
+  burst.className='petal-burst';
+  const petals=['🌸','🌷','🌼','💮','🍃'];
+  for(let i=0;i<22;i++){
+    const p=document.createElement('span');
+    p.className='pt'; p.textContent=petals[i%petals.length];
+    p.style.left=(Math.random()*100)+'%';
+    p.style.top=(-20-Math.random()*40)+'px';
+    p.style.animationDelay=(Math.random()*0.8).toFixed(2)+'s';
+    burst.appendChild(p);
+  }
+  stage.appendChild(burst);
+  setTimeout(()=>burst.remove(),3400);
+}
+
+/* ---------- F. HOME DASHBOARD ---------- */
+function renderHome(){
+  const user=store.get(LS.user,{name:'Friend',companion:'fox',zones:['wellness']});
+  const comp=COMPANIONS.find(c=>c.id===user.companion)||COMPANIONS[2];
+
+  document.getElementById('greeting-text').textContent = greetWord()+', '+user.name;
+  document.getElementById('home-companion-ico').textContent = comp.emo;
+  document.getElementById('home-comp-av').textContent = comp.emo;
+  document.getElementById('home-comp-name').textContent = comp.name;
+  document.getElementById('home-comp-msg').textContent = companionMessage();
+
+  // affirmation — one per day (stable by date)
+  const idx = dateSeed() % AFFIRMATIONS.length;
+  document.getElementById('affirmation').textContent = AFFIRMATIONS[idx];
+
+  // goal insight — most active zone
+  const mz = mostActiveZone();
+  const z = ZONES.find(x=>x.id===mz) || ZONES.find(x=>x.id===(user.zones||[])[0]) || ZONES[2];
+  document.getElementById('goal-insight').textContent = z.tip;
+
+  buildGarden('home-garden-mount', false);
+}
+
+function dateSeed(){
+  const d=new Date(); return d.getFullYear()*1000 + (d.getMonth()*31 + d.getDate());
+}
+function companionMessage(){
+  const logs=store.get(LS.logs,[]);
+  const comp=COMPANIONS.find(c=>c.id===(store.get(LS.user,{}).companion))||COMPANIONS[2];
+  const todays = logs.filter(l=>l.date===todayStr());
+  if(todays.length){
+    const z=ZONES.find(x=>x.id===todays[todays.length-1].zone);
+    return `Your ${z?z.name:'garden'} grew today. Keep going.`;
+  }
+  if(logs.length===0) return 'Plant your first habit and watch me come alive.';
+  return 'You showed up again. Your garden noticed.';
+}
+
+/* ---------- E2. FULL GARDEN ---------- */
+function renderFullGarden(){ buildGarden('full-garden-mount', true); }
+
+function openZoneModal(zid){
+  const z=ZONES.find(x=>x.id===zid); if(!z) return;
+  const habits=store.get(LS.habits,[]).filter(h=>h.zone===zid);
+  const logs=store.get(LS.logs,[]).filter(l=>l.zone===zid);
+  const zlvl = getLevel(logs.length*10);
+  const recent = logs.slice(-3).reverse();
+  document.getElementById('zone-modal').innerHTML=`
+    <div class="center" style="font-size:40px">${z.emo}</div>
+    <h2 class="center" style="margin:4px 0 2px">${z.name}</h2>
+    <p class="center muted" style="font-size:13px">Zone Level ${zlvl} · ${logs.length} completions</p>
+    <p class="section-title" style="margin-top:16px">Active Habits</p>
+    ${habits.length? habits.map(h=>`<div class="habit"><div class="habit-info"><div class="hn">${h.name}</div><div class="hf">${h.freq} · 🔥 ${h.streak||0} streak</div></div></div>`).join('') : '<p class="muted" style="font-size:14px">No habits here yet. Add one in Habits.</p>'}
+    <p class="section-title" style="margin-top:14px">Recent Completions</p>
+    ${recent.length? recent.map(l=>`<p class="muted" style="font-size:13.5px">✓ ${l.name||'Habit'} · ${l.date}</p>`).join('') : '<p class="muted" style="font-size:14px">Nothing yet — your next step starts here.</p>'}
+    <button class="btn" style="margin-top:16px" onclick="closeZoneModal()">Close</button>`;
+  document.getElementById('zone-modal-scrim').classList.add('open');
+}
+function closeZoneModal(e){
+  if(e && e.target.closest('#zone-modal') && e.type==='click' && e.target.id!=='zone-modal') return;
+  document.getElementById('zone-modal-scrim').classList.remove('open');
+}
+
+/* ---------- G. HABITS & GOALS ---------- */
+function renderHabits(){
+  const user=store.get(LS.user,{zones:[]});
+  const habits=store.get(LS.habits,[]);
+  const wrap=document.getElementById('habits-list');
+  const activeZones = (user.zones&&user.zones.length)?user.zones:['wellness'];
+
+  wrap.innerHTML = activeZones.map(zid=>{
+    const z=ZONES.find(x=>x.id===zid); if(!z) return '';
+    const zh = habits.filter(h=>h.zone===zid);
+    const logs=store.get(LS.logs,[]).filter(l=>l.zone===zid);
+    const lvl=getLevel(logs.length*10);
+    const pct = Math.min(100, (logs.length%8)/8*100);
+    return `
+    <div class="card zone-card" id="zc-${zid}">
+      <div class="zone-head" onclick="toggleZone('${zid}')">
+        <div class="zemo">${z.emo}</div>
+        <div class="ztitle"><b>${z.name}</b><div class="zlvl">Level ${lvl} · ${zh.length} habit${zh.length!==1?'s':''}</div>
+          <div class="zmeter"><span style="width:${pct}%"></span></div>
+        </div>
+        <div class="chev">▾</div>
+      </div>
+      <div class="zone-body">
+        ${zh.length? zh.map(h=>habitRow(h)).join('') : '<p class="muted" style="font-size:14px">No habits yet — add your first below.</p>'}
+        <div class="add-habit-row">
+          <input class="input" id="new-${zid}" placeholder="New habit…" />
+          <select class="input freq" id="freq-${zid}"><option value="daily">Daily</option><option value="weekly">Weekly</option></select>
+          <button class="mini-btn" onclick="addHabit('${zid}')">+</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML += `<p class="foot-note">Add or remove goal zones in your Profile.</p>`;
+}
+
+function habitRow(h){
+  const done = isDoneToday(h.id);
+  return `
+  <div class="habit">
+    <div class="check ${done?'done':''}" onclick="toggleHabit('${h.id}')"></div>
+    <div class="habit-info ${done?'done':''}">
+      <div class="hn">${h.name}</div>
+      <div class="hf">${h.freq}</div>
+    </div>
+    <div class="streak-badge">🔥 ${h.streak||0}</div>
+  </div>`;
+}
+
+function toggleZone(zid){
+  const c=document.getElementById('zc-'+zid);
+  c.classList.toggle('open');
+}
+
+function addHabit(zid){
+  const inp=document.getElementById('new-'+zid);
+  const name=inp.value.trim();
+  if(!name){ inp.focus(); return; }
+  const freq=document.getElementById('freq-'+zid).value;
+  const habits=store.get(LS.habits,[]);
+  habits.push({ id:'h'+Date.now()+Math.floor(Math.random()*999), name, zone:zid, freq, streak:0, lastDone:null });
+  store.set(LS.habits,habits);
+  inp.value='';
+  renderHabits();
+  document.getElementById('zc-'+zid).classList.add('open');
+  toast('Habit planted 🌱');
+}
+
+function isDoneToday(hid){
+  const logs=store.get(LS.logs,[]);
+  return logs.some(l=>l.habitId===hid && l.date===todayStr());
+}
+
+function toggleHabit(hid){
+  const habits=store.get(LS.habits,[]);
+  const h=habits.find(x=>x.id===hid); if(!h) return;
+  let logs=store.get(LS.logs,[]);
+  const done=isDoneToday(hid);
+  const g=getGarden();
+  const beforeLevel=getLevel(g.xp);
+
+  if(done){
+    // undo
+    logs=logs.filter(l=>!(l.habitId===hid && l.date===todayStr()));
+    h.streak=Math.max(0,(h.streak||0)-1);
+    g.xp=Math.max(0,g.xp-10);
+  } else {
+    logs.push({ habitId:hid, name:h.name, zone:h.zone, date:todayStr() });
+    // streak: increment if last done was yesterday or first time
+    if(h.lastDone){
+      const gap=daysBetween(h.lastDone, todayStr());
+      h.streak = gap===1 ? (h.streak||0)+1 : 1;
+    } else { h.streak=1; }
+    h.lastDone=todayStr();
+    g.xp+=10;
+  }
+  store.set(LS.habits,habits);
+  store.set(LS.logs,logs);
+  store.set(LS.garden,g);
+
+  const afterLevel=getLevel(g.xp);
+  renderHabits();
+  if(!done && afterLevel>beforeLevel){
+    toast('🌳 Your garden grew to Level '+afterLevel+'!');
+    // brief peek at garden growth
+    nav('garden');
+    setTimeout(()=>petalBurst('stage-full'),300);
+  } else if(!done){
+    autoSelectSoundscape();
+  }
+}
+
+function longestCurrentStreak(){
+  const habits=store.get(LS.habits,[]);
+  return habits.reduce((m,h)=>Math.max(m,h.streak||0),0);
+}
+function mostActiveZone(){
+  const logs=store.get(LS.logs,[]);
+  const counts={};
+  logs.forEach(l=>counts[l.zone]=(counts[l.zone]||0)+1);
+  let best=null,n=-1;
+  Object.keys(counts).forEach(z=>{ if(counts[z]>n){ n=counts[z]; best=z; } });
+  return best;
+}
+
+/* ---------- H. INSIGHTS ---------- */
+function renderInsights(){
+  const wrap=document.getElementById('insights-list');
+  const logs=store.get(LS.logs,[]);
+  const user=store.get(LS.user,{created:todayStr()});
+  const habits=store.get(LS.habits,[]);
+  const daysActive = daysBetween(user.created, todayStr());
+
+  if(logs.length===0){
+    wrap.innerHTML=`<div class="card center"><div style="font-size:40px">🌱</div><p style="margin-top:8px">Check back after a few days — your insights are growing.</p></div>`;
+    return;
+  }
+
+  const weekAgo=new Date(Date.now()-6*86400000).toISOString().slice(0,10);
+  const weekCount=logs.filter(l=>l.date>=weekAgo).length;
+  const longest=longestCurrentStreak();
+  const mz=mostActiveZone();
+  const mzName=(ZONES.find(z=>z.id===mz)||{}).name||'—';
+
+  // least active among user's zones
+  const counts={}; (user.zones||[]).forEach(z=>counts[z]=0);
+  logs.forEach(l=>{ if(counts[l.zone]!==undefined) counts[l.zone]++; });
+  let least=null,low=Infinity;
+  Object.keys(counts).forEach(z=>{ if(counts[z]<low){ low=counts[z]; least=z; } });
+  const leastName=(ZONES.find(z=>z.id===least)||{}).name||'a zone';
+
+  let html=`
+    <div class="card insight"><span class="ico">🌿</span><div><b>${weekCount}</b><div class="muted">habits completed this week</div></div></div>
+    <div class="card insight"><span class="ico">🔥</span><div><b>${longest} day${longest!==1?'s':''}</b><div class="muted">your longest current streak</div></div></div>
+    <div class="card insight"><span class="ico">⭐</span><div><b style="font-size:18px">${mzName}</b><div class="muted">your most consistent zone</div></div></div>
+    <div class="card insight"><span class="ico">💧</span><div><b style="font-size:18px">${leastName}</b><div class="muted">needs a little attention this week</div></div></div>
+  `;
+
+  // Weekly Garden Story (after 7 days of data)
+  if(daysActive>=7){
+    html += `
+    <div class="card story-card">
+      <p class="section-title" style="margin-bottom:8px">Weekly Garden Story</p>
+      <p>This week you completed ${weekCount} habit${weekCount!==1?'s':''} and held a ${longest}-day streak.
+      Your ${mzName} bloomed with new growth, while your ${leastName} is waiting for you.
+      Your garden is becoming more beautiful — and so are you.</p>
+    </div>`;
+  } else {
+    html += `<p class="foot-note">Your Weekly Garden Story unlocks after 7 days (${7-daysActive} to go).</p>`;
+  }
+
+  wrap.innerHTML=html;
+}
+
+/* ---------- I. PROFILE ---------- */
+function renderProfile(){
+  const user=store.get(LS.user,{name:'Friend',email:'',companion:'fox',zones:[]});
+  const comp=COMPANIONS.find(c=>c.id===user.companion)||COMPANIONS[2];
+  const g=getGarden();
+  const lvl=getLevel(g.xp);
+  const totalDone=store.get(LS.logs,[]).length;
+
+  const body=document.getElementById('profile-body');
+  body.innerHTML=`
+    <div class="profile-head">
+      <div class="av">${comp.emo}</div>
+      <h2>${user.name}</h2>
+      <p class="muted" style="font-size:13.5px">${user.email}</p>
+    </div>
+
+    <div class="stat-row" style="margin-bottom:16px">
+      <div class="card"><b>${LEVELS[lvl-1].emo} ${lvl}</b><span>Garden Level</span></div>
+      <div class="card"><b>${totalDone}</b><span>Habits Done</span></div>
+    </div>
+
+    <div class="card">
+      <p class="section-title">Your Companion</p>
+      <div class="choice-grid">
+        ${COMPANIONS.map(c=>`<div class="choice ${c.id===user.companion?'sel':''}" onclick="changeCompanion('${c.id}')"><span class="emo">${c.emo}</span><span class="lbl">${c.name}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="section-title">Active Goal Zones</p>
+      ${ZONES.map(z=>`
+        <div class="zone-toggle">
+          <div class="row"><span style="font-size:22px">${z.emo}</span><span style="font-weight:500">${z.name}</span></div>
+          <div class="toggle ${(user.zones||[]).includes(z.id)?'on':''}" onclick="toggleZoneActive('${z.id}')"></div>
+        </div>`).join('')}
+    </div>
+
+    <button class="btn secondary" onclick="signOut()">Sign Out</button>
+    <p class="foot-note">Soul Garden stores everything privately on your device.</p>
+  `;
+}
+function changeCompanion(id){
+  const user=store.get(LS.user,{}); user.companion=id; store.set(LS.user,user);
+  renderProfile(); toast('Companion changed 🐾');
+}
+function toggleZoneActive(zid){
+  const user=store.get(LS.user,{zones:[]});
+  user.zones=user.zones||[];
+  if(user.zones.includes(zid)){
+    if(user.zones.length<=1){ toast('Keep at least one zone growing 🌱'); return; }
+    user.zones=user.zones.filter(z=>z!==zid);
+  } else {
+    user.zones.push(zid);
+  }
+  store.set(LS.user,user);
+  renderProfile();
+}
+
+/* ---------- J. AMBIENT SOUND (WebAudio synthesis) ---------- */
+let audioCtx=null, masterGain=null, muted=false, volume=0.55;
+const activeSounds={}; // id -> {nodes, gain}
+
+function ensureAudio(){
+  if(!audioCtx){
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    masterGain=audioCtx.createGain();
+    masterGain.gain.value=muted?0:volume;
+    masterGain.connect(audioCtx.destination);
+  }
+  if(audioCtx.state==='suspended') audioCtx.resume();
+}
+
+// white/pink noise buffer
+function noiseBuffer(){
+  const len=audioCtx.sampleRate*2;
+  const buf=audioCtx.createBuffer(1,len,audioCtx.sampleRate);
+  const d=buf.getChannelData(0);
+  let last=0;
+  for(let i=0;i<len;i++){
+    const white=Math.random()*2-1;
+    last=(last+0.02*white)/1.02; d[i]=last*3.5; // pink-ish
+  }
+  return buf;
+}
+
+// Build a sound source for an id
+function makeSound(id){
+  ensureAudio();
+  const g=audioCtx.createGain(); g.gain.value=0; g.connect(masterGain);
+  const nodes=[];
+
+  if(id==='rain' || id==='wind' || id==='leaves' || id==='stream'){
+    const src=audioCtx.createBufferSource(); src.buffer=noiseBuffer(); src.loop=true;
+    const filt=audioCtx.createBiquadFilter();
+    if(id==='rain'){ filt.type='lowpass'; filt.frequency.value=2600; }
+    if(id==='wind'){ filt.type='lowpass'; filt.frequency.value=600; }
+    if(id==='leaves'){ filt.type='bandpass'; filt.frequency.value=3500; filt.Q.value=0.7; }
+    if(id==='stream'){ filt.type='bandpass'; filt.frequency.value=1800; filt.Q.value=0.4; }
+    src.connect(filt); filt.connect(g); src.start();
+    nodes.push(src);
+    // gentle LFO on wind for movement
+    if(id==='wind'){
+      const lfo=audioCtx.createOscillator(); const lg=audioCtx.createGain();
+      lfo.frequency.value=0.1; lg.gain.value=300; lfo.connect(lg); lg.connect(filt.frequency); lfo.start();
+      nodes.push(lfo);
+    }
+  }
+  else if(id==='birds'){
+    // intermittent chirps via scheduled oscillator
+    const timer=setInterval(()=>{
+      if(audioCtx.state!=='running') return;
+      const o=audioCtx.createOscillator(); const og=audioCtx.createGain();
+      o.type='sine'; const base=1800+Math.random()*1400;
+      o.frequency.setValueAtTime(base,audioCtx.currentTime);
+      o.frequency.linearRampToValueAtTime(base+400,audioCtx.currentTime+0.08);
+      og.gain.setValueAtTime(0,audioCtx.currentTime);
+      og.gain.linearRampToValueAtTime(0.25,audioCtx.currentTime+0.02);
+      og.gain.linearRampToValueAtTime(0,audioCtx.currentTime+0.16);
+      o.connect(og); og.connect(g); o.start(); o.stop(audioCtx.currentTime+0.2);
+    }, 600+Math.random()*400);
+    nodes.push({stop:()=>clearInterval(timer)});
+  }
+  else if(id==='nature'){
+    // combo: soft noise + birds handled by enabling others; here add light pad
+    const src=audioCtx.createBufferSource(); src.buffer=noiseBuffer(); src.loop=true;
+    const filt=audioCtx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=1400;
+    src.connect(filt); filt.connect(g); src.start(); nodes.push(src);
+  }
+
+  // fade in
+  g.gain.linearRampToValueAtTime(0.6, audioCtx.currentTime+0.8);
+  return { nodes, gain:g };
+}
+
+function toggleSound(id){
+  if(activeSounds[id]){
+    stopSound(id);
+  } else {
+    activeSounds[id]=makeSound(id);
+  }
+  refreshSoundUI();
+}
+function stopSound(id){
+  const s=activeSounds[id]; if(!s) return;
+  try{
+    s.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime+0.4);
+    setTimeout(()=>{ s.nodes.forEach(n=>{ try{ n.stop&&n.stop(); }catch(e){} }); },450);
+  }catch(e){}
+  delete activeSounds[id];
+}
+function stopAllSounds(){ Object.keys(activeSounds).forEach(stopSound); refreshSoundUI&&refreshSoundUI(); }
+
+function setVolume(v){
+  volume=v/100;
+  if(masterGain && !muted) masterGain.gain.value=volume;
+}
+function toggleMute(){
+  muted=!muted;
+  if(masterGain) masterGain.gain.value=muted?0:volume;
+  document.getElementById('mute-btn').textContent=muted?'🔇':'🔊';
+}
+
+function buildSoundGrid(){
+  document.getElementById('sound-grid').innerHTML=SOUNDS.map(s=>`
+    <div class="sound" id="snd-${s.id}" onclick="toggleSound('${s.id}')">
+      <div class="se">${s.emo}</div><div class="sl">${s.name}</div>
+    </div>`).join('');
+}
+function refreshSoundUI(){
+  SOUNDS.forEach(s=>{
+    const el=document.getElementById('snd-'+s.id);
+    if(el) el.classList.toggle('on', !!activeSounds[s.id]);
+  });
+  const on=Object.keys(activeSounds).map(id=>(SOUNDS.find(s=>s.id===id)||{}).name).filter(Boolean);
+  document.getElementById('active-sound-label').textContent = on.length? 'Playing: '+on.join(' + ') : 'No soundscape playing';
+}
+
+// Auto-select soundscape based on weather + time
+function autoSelectSoundscape(){
+  // Only suggest if nothing is playing
+  if(Object.keys(activeSounds).length) return;
+}
+function openDrawer(){
+  buildSoundGrid();
+  // suggest a soundscape combination based on weather/time (only on first open)
+  if(!Object.keys(activeSounds).length){
+    const tod=timeOfDay(); const w=computeWeather();
+    let suggest=[];
+    if(tod==='night') suggest=['stream'];          // crickets/stream calm
+    else if(w.id==='rainy') suggest=['rain','wind'];
+    else if(w.id==='sunny'||w.id==='rainbow') suggest=['birds','stream','wind'];
+    else suggest=['leaves'];
+    suggest.forEach(id=>{ activeSounds[id]=makeSound(id); });
+  }
+  refreshSoundUI();
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-scrim').classList.add('open');
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-scrim').classList.remove('open');
+}
+
+/* ---------- K. BOOT ---------- */
+function boot(){
+  buildChoices();
+  const logged=store.get(LS.session,false);
+  const user=store.get(LS.user,null);
+  if(logged && user){
+    enterApp();
+  } else {
+    go('splash');
+  }
+}
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>
