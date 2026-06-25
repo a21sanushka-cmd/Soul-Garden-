@@ -14,6 +14,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet" />
 
+<!-- Supabase JS client (backend: auth + database) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 /* ============================================================
    SOUL GARDEN — STYLES
@@ -828,14 +831,60 @@ const SOUNDS = [
   { id:'nature', emo:'🦋', name:'Full Nature' }
 ];
 
-/* ---------- B. STORAGE HELPERS ---------- */
+/* ---------- B. SUPABASE BACKEND ---------- */
+// Project: Soul Garden — auth + Postgres (Row Level Security per user)
+const SUPABASE_URL = 'https://cifpilcvmhdrlsyfemju.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_DHv4WscAex4u--ZWME3IpA_tHed2l1f';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// In-memory cache of the signed-in user's data. The render layer reads this
+// through `store.get(...)`; mutations write through to Supabase explicitly.
+const state = { user:null, garden:{xp:0,weeklyStoryShown:0}, habits:[], logs:[] };
+
 const store = {
-  get(k, fallback){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } },
-  set(k, v){ localStorage.setItem(k, JSON.stringify(v)); },
-  del(k){ localStorage.removeItem(k); }
+  get(k, fallback){
+    let v;
+    if(k===LS.user)        v = state.user;
+    else if(k===LS.habits) v = state.habits;
+    else if(k===LS.logs)   v = state.logs;
+    else if(k===LS.garden) v = state.garden;
+    return (v===null || v===undefined) ? fallback : v;
+  },
+  set(k, v){
+    if(k===LS.user)        state.user   = v;
+    else if(k===LS.habits) state.habits = v;
+    else if(k===LS.logs)   state.logs   = v;
+    else if(k===LS.garden) state.garden = v;
+  },
+  del(){}
 };
 const todayStr = () => new Date().toISOString().slice(0,10);
 function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
+
+// Load all of the signed-in user's rows from Supabase into `state`.
+async function loadData(){
+  const { data:{ user } } = await sb.auth.getUser();
+  if(!user) return false;
+  const [prof, garden, habits, logs] = await Promise.all([
+    sb.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+    sb.from('garden').select('*').eq('user_id', user.id).maybeSingle(),
+    sb.from('habits').select('*').eq('user_id', user.id),
+    sb.from('logs').select('*').eq('user_id', user.id)
+  ]);
+  const p = prof.data || {};
+  state.user = {
+    id: user.id, email: user.email,
+    name: p.name || (user.user_metadata && user.user_metadata.name) || 'Friend',
+    companion: p.companion || 'fox',
+    zones: (p.zones && p.zones.length) ? p.zones : ['wellness'],
+    created: p.created || todayStr()
+  };
+  const gd = garden.data || {};
+  state.garden = { xp: gd.xp || 0, weeklyStoryShown: gd.weekly_story_shown || 0 };
+  state.habits = (habits.data || []).map(h=>({ id:h.id, name:h.name, zone:h.zone, freq:h.freq, streak:h.streak||0, lastDone:h.last_done }));
+  state.logs   = (logs.data   || []).map(l=>({ id:l.id, habitId:l.habit_id, name:l.name, zone:l.zone, date:l.date }));
+  return true;
+}
 
 /* Selections for signup */
 let pick = { companion:'fox', zone:'wellness' };
@@ -883,33 +932,46 @@ function buildChoices(){
 function selectCompanion(id){ pick.companion=id; document.querySelectorAll('[data-c]').forEach(e=>e.classList.toggle('sel', e.dataset.c===id)); }
 function selectZone(id){ pick.zone=id; document.querySelectorAll('[data-z]').forEach(e=>e.classList.toggle('sel', e.dataset.z===id)); }
 
-function createAccount(){
+async function createAccount(){
   const name=document.getElementById('su-name').value.trim();
   const email=document.getElementById('su-email').value.trim().toLowerCase();
   const pass=document.getElementById('su-pass').value;
   const err=document.getElementById('su-err');
+  const btn=document.getElementById('su-submit');
   if(!name || !email || !pass){ err.textContent='Please fill in your name, email and password.'; return; }
   if(!/^\S+@\S+\.\S+$/.test(email)){ err.textContent='That email looks a little off. Try again.'; return; }
+  if(pass.length<6){ err.textContent='Password needs at least 6 characters.'; return; }
 
-  const user = { name, email, pass, companion:pick.companion, zones:[pick.zone], created:todayStr() };
-  store.set(LS.user, user);
-  store.set(LS.habits, []);
-  store.set(LS.logs, []);
-  store.set(LS.garden, { xp:0, weeklyStoryShown:0 });
-  store.set(LS.session, true);
-  err.textContent='';
+  err.textContent=''; btn.disabled=true; btn.textContent='Planting your garden…';
+  // Supabase Auth — name/companion/zone passed as metadata; a DB trigger
+  // creates the matching profile + garden rows automatically.
+  const { data, error } = await sb.auth.signUp({
+    email, password:pass,
+    options:{ data:{ name, companion:pick.companion, zone:pick.zone } }
+  });
+  btn.disabled=false; btn.textContent='Begin My Journey';
+  if(error){ err.textContent = error.message; return; }
+
+  if(!data.session){
+    // Email confirmation is enabled on the project — ask them to confirm.
+    err.style.color='#5E9576';
+    err.textContent='Almost there! Check your email to confirm, then sign in.';
+    setTimeout(()=>{ err.style.color=''; go('signin'); }, 2600);
+    return;
+  }
+  await loadData();
   enterApp();
   toast('Welcome to your garden, '+name+' 🌱');
 }
 
-function signIn(){
+async function signIn(){
   const email=document.getElementById('si-email').value.trim().toLowerCase();
   const pass=document.getElementById('si-pass').value;
-  const user=store.get(LS.user,null);
   const err=document.getElementById('si-err');
-  if(user && user.email===email && user.pass===pass){
-    store.set(LS.session,true);
+  const { data, error } = await sb.auth.signInWithPassword({ email, password:pass });
+  if(!error && data.session){
     err.textContent='';
+    await loadData();
     enterApp();
   } else {
     err.textContent="We couldn't find your garden. Try again.";
@@ -918,8 +980,9 @@ function signIn(){
   }
 }
 
-function signOut(){
-  store.del(LS.session);
+async function signOut(){
+  await sb.auth.signOut();
+  state.user=null; state.habits=[]; state.logs=[]; state.garden={xp:0,weeklyStoryShown:0};
   stopAllSounds();
   go('splash');
 }
@@ -1221,15 +1284,17 @@ function toggleZone(zid){
   c.classList.toggle('open');
 }
 
-function addHabit(zid){
+async function addHabit(zid){
   const inp=document.getElementById('new-'+zid);
   const name=inp.value.trim();
   if(!name){ inp.focus(); return; }
   const freq=document.getElementById('freq-'+zid).value;
-  const habits=store.get(LS.habits,[]);
-  habits.push({ id:'h'+Date.now()+Math.floor(Math.random()*999), name, zone:zid, freq, streak:0, lastDone:null });
-  store.set(LS.habits,habits);
   inp.value='';
+  const { data, error } = await sb.from('habits')
+    .insert({ user_id: state.user.id, name, zone:zid, freq })
+    .select().single();
+  if(error){ toast('Could not save habit. Try again.'); return; }
+  state.habits.push({ id:data.id, name:data.name, zone:data.zone, freq:data.freq, streak:0, lastDone:null });
   renderHabits();
   document.getElementById('zc-'+zid).classList.add('open');
   toast('Habit planted 🌱');
@@ -1240,38 +1305,42 @@ function isDoneToday(hid){
   return logs.some(l=>l.habitId===hid && l.date===todayStr());
 }
 
-function toggleHabit(hid){
-  const habits=store.get(LS.habits,[]);
-  const h=habits.find(x=>x.id===hid); if(!h) return;
-  let logs=store.get(LS.logs,[]);
+async function toggleHabit(hid){
+  const h=state.habits.find(x=>x.id===hid); if(!h) return;
+  const uid=state.user.id;
   const done=isDoneToday(hid);
   const g=getGarden();
   const beforeLevel=getLevel(g.xp);
 
   if(done){
-    // undo
-    logs=logs.filter(l=>!(l.habitId===hid && l.date===todayStr()));
+    // undo today's completion
+    await sb.from('logs').delete().eq('habit_id',hid).eq('date',todayStr());
+    state.logs=state.logs.filter(l=>!(l.habitId===hid && l.date===todayStr()));
     h.streak=Math.max(0,(h.streak||0)-1);
     g.xp=Math.max(0,g.xp-10);
+    await sb.from('habits').update({ streak:h.streak }).eq('id',hid);
   } else {
-    logs.push({ habitId:hid, name:h.name, zone:h.zone, date:todayStr() });
-    // streak: increment if last done was yesterday or first time
+    const { data:log, error } = await sb.from('logs')
+      .insert({ user_id:uid, habit_id:hid, name:h.name, zone:h.zone, date:todayStr() })
+      .select().single();
+    if(error){ toast('Could not save. Try again.'); return; }
+    state.logs.push({ id:log.id, habitId:hid, name:h.name, zone:h.zone, date:todayStr() });
+    // streak: increment if last done was yesterday, else reset to 1
     if(h.lastDone){
       const gap=daysBetween(h.lastDone, todayStr());
       h.streak = gap===1 ? (h.streak||0)+1 : 1;
     } else { h.streak=1; }
     h.lastDone=todayStr();
     g.xp+=10;
+    await sb.from('habits').update({ streak:h.streak, last_done:h.lastDone }).eq('id',hid);
   }
-  store.set(LS.habits,habits);
-  store.set(LS.logs,logs);
   store.set(LS.garden,g);
+  await sb.from('garden').update({ xp:g.xp }).eq('user_id',uid);
 
   const afterLevel=getLevel(g.xp);
   renderHabits();
   if(!done && afterLevel>beforeLevel){
     toast('🌳 Your garden grew to Level '+afterLevel+'!');
-    // brief peek at garden growth
     nav('garden');
     setTimeout(()=>petalBurst('stage-full'),300);
   } else if(!done){
@@ -1382,11 +1451,13 @@ function renderProfile(){
     <p class="foot-note">Soul Garden stores everything privately on your device.</p>
   `;
 }
-function changeCompanion(id){
+async function changeCompanion(id){
   const user=store.get(LS.user,{}); user.companion=id; store.set(LS.user,user);
-  renderProfile(); toast('Companion changed 🐾');
+  renderProfile();
+  await sb.from('profiles').update({ companion:id, updated_at:new Date().toISOString() }).eq('id',user.id);
+  toast('Companion changed 🐾');
 }
-function toggleZoneActive(zid){
+async function toggleZoneActive(zid){
   const user=store.get(LS.user,{zones:[]});
   user.zones=user.zones||[];
   if(user.zones.includes(zid)){
@@ -1397,6 +1468,7 @@ function toggleZoneActive(zid){
   }
   store.set(LS.user,user);
   renderProfile();
+  await sb.from('profiles').update({ zones:user.zones, updated_at:new Date().toISOString() }).eq('id',user.id);
 }
 
 /* ---------- J. AMBIENT SOUND (WebAudio synthesis) ---------- */
@@ -1545,11 +1617,12 @@ function closeDrawer(){
 }
 
 /* ---------- K. BOOT ---------- */
-function boot(){
+async function boot(){
   buildChoices();
-  const logged=store.get(LS.session,false);
-  const user=store.get(LS.user,null);
-  if(logged && user){
+  // Resume an existing Supabase session if present, otherwise show splash.
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){
+    await loadData();
     enterApp();
   } else {
     go('splash');
