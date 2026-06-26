@@ -333,6 +333,16 @@ label.field span{ display:block; font-size:13px; color:var(--text-light); margin
 .canopy::before{ width:60%; height:60%; top:-18%; left:6%; }
 .canopy::after{  width:55%; height:55%; top:-10%; right:4%; }
 
+/* SVG tree (levels 2+) — tapered trunk, branches, layered crown.
+   Replaces the old blob canopy; scales by level via width/height. */
+.tree-svg{
+  display:block; margin:0 auto;
+  transform-origin:bottom center;
+  animation:sway 7s ease-in-out infinite;
+  filter:drop-shadow(0 6px 8px rgba(46,64,40,.16));
+}
+@media (prefers-reduced-motion: reduce){ .tree-svg{ animation:none; } }
+
 /* Glow for enchanted level */
 .tree-glow{
   position:absolute; bottom:120px; left:50%; transform:translate(-50%,0);
@@ -1219,6 +1229,49 @@ function computeWeather(){
   return { id:'cloudy', emo:'☁️', label:'Cloudy', note:'A few missed steps. Today is a fresh start.' };
 }
 
+// Hand-tuned SVG tree for levels 2–6: a tapered trunk, a couple of branches,
+// and a layered crown of overlapping leaf clusters (light source upper-left).
+// `uid` keeps gradient ids unique between the home hero and full-garden copies.
+function treeSVG(lv, uid){
+  uid = uid || 'h';
+  const H = ({2:150, 3:205, 4:255, 5:310, 6:360})[lv] || 255;
+  const W = Math.round(H * 0.62);
+  const young = lv <= 3;                 // sapling silhouette for levels 2–3
+  const tg = 'tg-'+uid, lg = 'lg-'+uid, dg = 'dg-'+uid;
+
+  // Trunk (+ branches once the tree is older). Base centred at x=100, y=292.
+  const trunk = young
+    ? `<path d="M94,292 C92,250 95,212 97,176 L103,176 C105,212 108,250 106,292 Z" fill="url(#${tg})"/>`
+    : `<path d="M88,292 C85,248 92,206 95,170 L105,170 C108,206 115,248 112,292 Z" fill="url(#${tg})"/>
+       <path d="M101,198 C88,186 78,168 71,150" stroke="url(#${tg})" stroke-width="7" fill="none" stroke-linecap="round"/>
+       <path d="M99,206 C113,194 124,177 131,161" stroke="url(#${tg})" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+
+  // Crown clusters: [cx, cy, r, isHighlight]. Back/lower drawn first.
+  const clusters = young
+    ? [[100,142,34,0],[74,146,26,0],[126,146,26,0],[100,104,30,1],[86,120,20,1]]
+    : [[70,150,34,0],[132,150,32,0],[100,150,40,0],
+       [64,116,34,0],[138,116,32,0],[100,106,50,0],
+       [104,72,40,1],[80,92,30,1],[126,96,22,1]];
+  const circles = clusters.map(c =>
+    `<circle cx="${c[0]}" cy="${c[1]}" r="${c[2]}" fill="url(#${c[3]?lg:dg})"/>`).join('');
+
+  return `<svg class="tree-svg" width="${W}" height="${H}" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <linearGradient id="${tg}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#9A714C"/><stop offset=".5" stop-color="#7A5538"/><stop offset="1" stop-color="#5C3F28"/>
+      </linearGradient>
+      <radialGradient id="${dg}" cx="40%" cy="32%" r="78%">
+        <stop offset="0" stop-color="#79B863"/><stop offset="1" stop-color="#4C8541"/>
+      </radialGradient>
+      <radialGradient id="${lg}" cx="38%" cy="30%" r="82%">
+        <stop offset="0" stop-color="#BCE5A1"/><stop offset="1" stop-color="#7FB96A"/>
+      </radialGradient>
+    </defs>
+    ${trunk}
+    <g>${circles}</g>
+  </svg>`;
+}
+
 // Build the layered garden DOM. compact=true for home hero.
 function buildGarden(mountId, full){
   const g=getGarden();
@@ -1253,14 +1306,10 @@ function buildGarden(mountId, full){
   if(lp.lv===1){
     plant = `<div class="sprout"><span class="leaf-s l"></span><span class="leaf-s r"></span><div class="stem" style="height:46px"></div></div>`;
   } else {
-    const trunkH = [0,0,40,70,100,140,170][lp.lv];
-    const trunkW = [0,0,12,16,20,26,32][lp.lv];
     const canopyS = [0,0,70,110,150,200,250][lp.lv];
-    plant = `
-      <div class="trunk" style="height:${trunkH}px;width:${trunkW}px"></div>
-      <div class="canopy" style="width:${canopyS}px;height:${canopyS}px;bottom:${trunkH-10}px;transform:translate(-50%,0) scale(1)"></div>
-      ${lp.lv>=6?`<div class="tree-glow" style="width:${canopyS*1.6}px;height:${canopyS*1.6}px;bottom:${trunkH}px;opacity:.9"></div>`:''}
-    `;
+    const trunkH  = [0,0,40,70,100,140,170][lp.lv];
+    plant = treeSVG(lp.lv, full ? 'f' : 'h')
+      + (lp.lv>=6 ? `<div class="tree-glow" style="width:${canopyS*1.6}px;height:${canopyS*1.6}px;bottom:${trunkH}px;opacity:.9"></div>` : '');
   }
 
   // Zone hotspots (only in full view), positioned around ground
