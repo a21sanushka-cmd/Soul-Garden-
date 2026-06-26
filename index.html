@@ -17,6 +17,9 @@
 <!-- Supabase JS client (backend: auth + database) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<!-- First-visit companion tour (ADDITIVE — safe to remove; see tour.css / tour.js) -->
+<link rel="stylesheet" href="tour.css" />
+
 <style>
 /* ============================================================
    SOUL GARDEN — STYLES
@@ -1955,5 +1958,8 @@ document.addEventListener('DOMContentLoaded', boot);
 })();
 
 </script>
+
+<!-- First-visit companion tour (ADDITIVE — wraps enterApp/renderProfile, edits nothing) -->
+<script src="tour.js"></script>
 </body>
 </html>
